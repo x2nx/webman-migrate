@@ -17,10 +17,11 @@ class DbSeedCommand extends SeedCommand
     public function __construct()
     {
         $container = new Container();
-        $connectionResolver = Db::getInstance()->getDatabaseManager();
         $this->setLaravel($container);
         // 调用父类构造函数
-        parent::__construct($connectionResolver);
+        parent::__construct(
+            Db::getInstance()->getDatabaseManager()
+        );
     }
 
     public function handle(): int

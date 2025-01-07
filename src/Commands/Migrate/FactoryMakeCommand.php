@@ -34,7 +34,6 @@ class FactoryMakeCommand extends IlluminateFactoryMakeCommand
     protected function buildClass($name): array|string
     {
         $factory = class_basename(Str::ucfirst(str_replace('Factory', '', $name)));
-        echo 1;
         $namespaceModel = $this->option('model')
             ? $this->qualifyModel($this->option('model'))
             : $this->qualifyModel($this->guessModelName($name));

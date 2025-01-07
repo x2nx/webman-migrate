@@ -9,8 +9,9 @@ class Install
      * @var array
      */
     protected static $pathRelation = array (
-  'config/plugin/x2nx/webman-migrate' => 'config/plugin/x2nx/webman-migrate',
-);
+        'config/plugin/x2nx/webman-migrate' => 'config/plugin/x2nx/webman-migrate',
+        'database' => 'database'
+    );
 
     /**
      * Install
