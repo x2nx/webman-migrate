@@ -1,0 +1,24 @@
+{
+  "name": "x2nx/webman-migrate",
+  "type": "library",
+  "license": "MIT",
+  "homepage": "https://github.com/x2nx/webman-migrate",
+  "description": "Support the use of Laravel specific migrate and phinx commands in webman",
+  "authors": [
+    {
+      "name": "OK Xaas",
+      "email": "okxaas@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "illuminate/database": "^11.21",
+    "robmorgan/phinx": "^0.16.6",
+    "illuminate/console": "^11.37",
+  },
+  "autoload": {
+    "psr-4": {
+      "X2nx\\WebmanMigrate\\": "src"
+    }
+  }
+}
