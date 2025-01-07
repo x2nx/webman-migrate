@@ -14,7 +14,7 @@
   "require": {
     "illuminate/database": "^11.21",
     "robmorgan/phinx": "^0.16.6",
-    "illuminate/console": "^11.37",
+    "illuminate/console": "^11.37"
   },
   "autoload": {
     "psr-4": {
