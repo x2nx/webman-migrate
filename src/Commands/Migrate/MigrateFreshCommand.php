@@ -1,7 +1,9 @@
 <?php
 namespace X2nx\WebmanMigrate\Commands\Migrate;
 
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
+use Illuminate\Database\Capsule\Manager;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Migrations\DatabaseMigrationRepository;
 use Illuminate\Database\Migrations\Migrator;
@@ -27,7 +29,16 @@ class MigrateFreshCommand extends FreshCommand
         });
         $this->setLaravel($container);
         $files = new Filesystem();
-        $connectionResolver = Db::getInstance()->getDatabaseManager();
+        $database = Db::getInstance();
+        if (empty($database)) {
+            $config = require __DIR__ . '/../../config/database.php';
+            // 初始化数据库连接
+            $database = new Capsule;
+            $database->addConnection($config['connections'][$config['default']]);
+            $database->setAsGlobal(); // 使 Capsule 全局可用
+            $database->bootEloquent(); // 启动 Eloquent ORM
+        }
+        $connectionResolver = $database->getDatabaseManager();
         $repository = new DatabaseMigrationRepository($connectionResolver, 'migrations');
         $migrator = new Migrator($repository, $connectionResolver, $files, $dispatcher);
         // 调用父类构造函数

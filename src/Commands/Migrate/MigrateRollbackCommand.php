@@ -8,6 +8,7 @@ use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Database\Console\Migrations\RollbackCommand;
+use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
 use Closure;
 
@@ -23,15 +24,16 @@ class MigrateRollbackCommand extends RollbackCommand
         $this->setLaravel($container);
         $dispatcher = new Dispatcher($container);
         $files = new Filesystem();
-        // 初始化数据库连接
-        $capsule = new Capsule;
-        $config = config(sprintf('database.connections.%s', config('database.default')));
-        $capsule->addConnection($config);
-        $capsule->setEventDispatcher($dispatcher);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $connectionResolver = $capsule->getDatabaseManager();
+        $database = Db::getInstance();
+        if (empty($database)) {
+            $config = require __DIR__ . '/../../config/database.php';
+            // 初始化数据库连接
+            $database = new Capsule;
+            $database->addConnection($config['connections'][$config['default']]);
+            $database->setAsGlobal(); // 使 Capsule 全局可用
+            $database->bootEloquent(); // 启动 Eloquent ORM
+        }
+        $connectionResolver = $database->getDatabaseManager();
         $repository = new DatabaseMigrationRepository($connectionResolver, 'migrations');
         $migrator = new Migrator($repository, $connectionResolver, $files, $dispatcher);
         // 调用父类构造函数

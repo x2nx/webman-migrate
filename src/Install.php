@@ -19,6 +19,10 @@ class Install
      */
     public static function install()
     {
+        if (!file_exists(config_path('database.php'))) {
+            copy(__DIR__ . "/config/database.php", config_path('database.php'));
+            chmod(config_path('database.php'), 0755);
+        }
         static::installByRelation();
     }
 
