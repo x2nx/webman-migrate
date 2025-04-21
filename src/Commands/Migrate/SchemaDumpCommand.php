@@ -1,7 +1,6 @@
 <?php
 namespace X2nx\WebmanMigrate\Commands\Migrate;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Contracts\Events\Dispatcher as DispatcherContract;
@@ -10,11 +9,11 @@ use Illuminate\Container\Container;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Facade;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\HttpFoundation\Exception\UnexpectedValueException;
 use Symfony\Component\Process\Process;
 use Webman\Config;
+use X2nx\WebmanMigrate\Db;
 
 class SchemaDumpCommand extends DumpCommand
 {
@@ -27,9 +26,11 @@ class SchemaDumpCommand extends DumpCommand
         // 初始化服务容器
         $container = new Container();
         $container->singleton(ConnectionResolverInterface::class, function () {
-            return Db::getInstance()->getDatabaseManager();
+            // 初始化数据库连接
+            $database = new Db();
+            return $database->init();
         });
-        $container->bind('config', function() {
+        $container->singleton('config', function() {
             return new Config();
         });
         // 绑定 DispatcherContract 到 Dispatcher

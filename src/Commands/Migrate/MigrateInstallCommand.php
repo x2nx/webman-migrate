@@ -3,10 +3,10 @@ namespace X2nx\WebmanMigrate\Commands\Migrate;
 
 use Illuminate\Container\Container;
 use Illuminate\Database\Migrations\DatabaseMigrationRepository;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
 use Illuminate\Database\Console\Migrations\InstallCommand;
 use Closure;
+use X2nx\WebmanMigrate\Db;
 
 class MigrateInstallCommand extends InstallCommand
 {
@@ -18,7 +18,9 @@ class MigrateInstallCommand extends InstallCommand
     {
         $container = new Container();
         $this->setLaravel($container);
-        $connectionResolver = Db::getInstance()->getDatabaseManager();
+        // 初始化数据库连接
+        $database = new Db();
+        $connectionResolver = $database->init();
         $repository = new DatabaseMigrationRepository($connectionResolver, 'migrations');
         // 调用父类构造函数
         parent::__construct($repository);

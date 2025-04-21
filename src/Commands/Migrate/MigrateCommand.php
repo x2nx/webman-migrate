@@ -8,9 +8,9 @@ use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Database\Console\Migrations\MigrateCommand as IlluminateMigrateCommand;
 use Illuminate\Filesystem\Filesystem;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
 use Closure;
+use X2nx\WebmanMigrate\Db;
 
 class MigrateCommand extends IlluminateMigrateCommand
 {
@@ -24,8 +24,10 @@ class MigrateCommand extends IlluminateMigrateCommand
         $dispatcher = new Dispatcher($container);
         $files = new Filesystem();
         $this->setLaravel($container);
+        // 初始化数据库连接
+        $database = new Db();
         // 绑定容器到 Facade 类
-        $connectionResolver = Db::getInstance()->getDatabaseManager();
+        $connectionResolver = $database->init();
         $repository = new DatabaseMigrationRepository($connectionResolver, 'migrations');
         $migrator = new Migrator($repository, $connectionResolver, $files, $dispatcher);
         // 调用父类构造函数

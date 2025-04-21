@@ -5,8 +5,8 @@ use Closure;
 use Illuminate\Database\Console\Seeds\SeedCommand;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Model;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
+use X2nx\WebmanMigrate\Db;
 
 class DbSeedCommand extends SeedCommand
 {
@@ -17,34 +17,14 @@ class DbSeedCommand extends SeedCommand
     public function __construct()
     {
         $container = new Container();
-        $this->setLaravel($container);
-        // 调用父类构造函数
-        parent::__construct(
-            Db::getInstance()->getDatabaseManager()
-        );
-    }
-
-    public function handle(): int
-    {
-        if (! $this->confirmToProceed()) {
-            return 1;
-        }
-
-        $this->components->info('Seeding database.');
-
-        $previousConnection = $this->resolver->getDefaultConnection();
-
-        $this->resolver->setDefaultConnection($this->getDatabase());
-
-        Model::unguarded(function () {
-            $this->getSeeder()->__invoke();
+        $container->singleton('config', function () {
+            return config();
         });
-
-        if ($previousConnection) {
-            $this->resolver->setDefaultConnection($previousConnection);
-        }
-
-        return 0;
+        $this->setLaravel($container);
+        // 初始化数据库连接
+        $database = new Db();
+        // 调用父类构造函数
+        parent::__construct($database->init());
     }
 
     protected function getDatabase()

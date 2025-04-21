@@ -4,8 +4,8 @@ namespace X2nx\WebmanMigrate\Commands\Migrate;
 use Illuminate\Container\Container;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Console\ShowCommand;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
+use X2nx\WebmanMigrate\Db;
 
 class DbShowCommand extends ShowCommand
 {
@@ -17,7 +17,9 @@ class DbShowCommand extends ShowCommand
     {
         $container = new Container();
         $container->singleton(ConnectionResolverInterface::class, function () {
-            return Db::getInstance()->getDatabaseManager();
+            // 初始化数据库连接
+            $database = new Db();
+            return $database->init();
         });
         $this->setLaravel($container);
         // 调用父类构造函数

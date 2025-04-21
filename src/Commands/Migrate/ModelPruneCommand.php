@@ -30,7 +30,7 @@ class ModelPruneCommand extends PruneCommand
         parent::__construct();
     }
 
-    protected function models()
+    public function models()
     {
         if (! empty($models = $this->option('model'))) {
             return (new Collection($models))->filter(function ($model) {
@@ -46,9 +46,7 @@ class ModelPruneCommand extends PruneCommand
 
         return (new Collection(Finder::create()->in($this->getPath())->files()->name('*.php')))
             ->map(function ($model) {
-                $namespace = $this->getNamespace();
-
-                return $namespace.str_replace(
+                return str_replace(
                         ['/', '.php'],
                         ['\\', ''],
                         Str::after($model->getRealPath(), realpath(app_path()).DIRECTORY_SEPARATOR)
@@ -64,11 +62,6 @@ class ModelPruneCommand extends PruneCommand
             })->values();
     }
 
-    protected function getNamespace(): string
-    {
-        return 'app\\';
-    }
-
     protected function getPath(): array|string
     {
         if (! empty($path = $this->option('path'))) {
@@ -77,7 +70,7 @@ class ModelPruneCommand extends PruneCommand
                 ->all();
         }
 
-        return app_path('model');
+        return base_path('model');
     }
 
     protected function getDefaultConfirmCallback(): Closure

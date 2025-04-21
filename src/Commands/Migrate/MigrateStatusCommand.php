@@ -2,16 +2,14 @@
 namespace X2nx\WebmanMigrate\Commands\Migrate;
 
 use Illuminate\Container\Container;
-use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Database\Connection;
 use Illuminate\Database\Migrations\DatabaseMigrationRepository;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Database\Console\Migrations\StatusCommand;
 use Illuminate\Filesystem\Filesystem;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
 use Closure;
+use X2nx\WebmanMigrate\Db;
 
 class MigrateStatusCommand extends StatusCommand
 {
@@ -25,7 +23,9 @@ class MigrateStatusCommand extends StatusCommand
         $this->setLaravel($container);
         $dispatcher = new Dispatcher($container);
         $files = new Filesystem();
-        $connectionResolver = Db::getInstance()->getDatabaseManager();
+        // 初始化数据库连接
+        $database = new Db();
+        $connectionResolver = $database->init();
         $repository = new DatabaseMigrationRepository($connectionResolver, 'migrations');
         $migrator = new Migrator($repository, $connectionResolver, $files, $dispatcher);
         // 调用父类构造函数

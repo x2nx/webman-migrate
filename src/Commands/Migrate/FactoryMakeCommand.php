@@ -19,7 +19,7 @@ class FactoryMakeCommand extends IlluminateFactoryMakeCommand
     {
         // 获取容器实例
         $container = new Container();
-        $container->bind('config', function() {
+        $container->singleton('config', function() {
             return new Config();
         });
         $this->setLaravel($container);

@@ -3,10 +3,11 @@ namespace X2nx\WebmanMigrate\Commands\Migrate;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Console\TableCommand;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
+use X2nx\WebmanMigrate\Db;
 
 class DbTableCommand extends TableCommand
 {
@@ -18,7 +19,9 @@ class DbTableCommand extends TableCommand
     {
         $container = new Container();
         $container->singleton(ConnectionResolverInterface::class, function () {
-            return Db::getInstance()->getDatabaseManager();
+            // 初始化数据库连接
+            $database = new Db();
+            return $database->init();
         });
         $this->setLaravel($container);
         // 调用父类构造函数

@@ -5,8 +5,9 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Console\MonitorCommand;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Support\Collection;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
+use Webman\Config;
+use X2nx\WebmanMigrate\Db;
 
 class DbMonitorCommand extends MonitorCommand
 {
@@ -18,27 +19,26 @@ class DbMonitorCommand extends MonitorCommand
     {
         $container = new Container();
         $dispatcher = new Dispatcher($container);
+        $container->singleton('config', function () {
+            return new Config();
+        });
         $this->setLaravel($container);
+        // 初始化数据库连接
+        $database = new Db();
         // 调用父类构造函数
-        parent::__construct(Db::getInstance()->getDatabaseManager(), $dispatcher);
+        parent::__construct($database->init(), $dispatcher);
     }
 
-    /**
-     * Parse the database into an array of the connections.
-     *
-     * @param  string  $databases
-     * @return \Illuminate\Support\Collection
-     */
-    protected function parseDatabases($databases): Collection
+    public function parseDatabases($databases): Collection
     {
-        return (new Collection(explode(',', $databases)))->map(function ($database) {
+        return (new Collection(@explode(',', $databases)))->map(function ($database) {
             if (! $database) {
                 $database = config('database.default');
             }
 
             $maxConnections = $this->option('max');
 
-            $connections = Db::getInstance()->getConnection()->threadCount();
+            $connections = $this->connection->connection($database)->threadCount();
 
             return [
                 'database' => $database,

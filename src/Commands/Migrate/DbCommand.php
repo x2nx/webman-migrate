@@ -2,8 +2,8 @@
 namespace X2nx\WebmanMigrate\Commands\Migrate;
 
 use Illuminate\Container\Container;
-use Illuminate\Database\Connection;
 use Illuminate\Support\ConfigurationUrlParser;
+use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\HttpFoundation\Exception\UnexpectedValueException;
 use Symfony\Component\Process\Process;

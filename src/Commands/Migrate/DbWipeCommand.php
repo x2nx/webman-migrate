@@ -3,9 +3,9 @@ namespace X2nx\WebmanMigrate\Commands\Migrate;
 
 use Illuminate\Container\Container;
 use Illuminate\Database\Console\WipeCommand;
-use support\Db;
 use Symfony\Component\Console\Input\InputInterface;
 use Closure;
+use X2nx\WebmanMigrate\Db;
 
 class DbWipeCommand extends WipeCommand
 {
@@ -16,8 +16,9 @@ class DbWipeCommand extends WipeCommand
     public function __construct()
     {
         $container = new Container();
-        $container->bind('db', function () {
-            return Db::getInstance();
+        $container->singleton('db', function () {
+            // 初始化数据库连接
+            return new Db();
         });
         $this->setLaravel($container);
         // 调用父类构造函数

@@ -12,9 +12,9 @@
   ],
   "minimum-stability": "dev",
   "require": {
-    "illuminate/database": "^11.21",
+    "illuminate/database": "*",
     "robmorgan/phinx": "^0.16.6",
-    "illuminate/console": "^11.37",
+    "illuminate/console": "*",
     "fakerphp/faker": "^1.24",
     "phpoption/phpoption": "^1.9",
     "vlucas/phpdotenv": "^5.6",

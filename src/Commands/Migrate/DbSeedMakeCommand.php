@@ -17,7 +17,7 @@ class DbSeedMakeCommand extends SeederMakeCommand
     public function __construct()
     {
         $container = new Container();
-        $container->bind('config', function () {
+        $container->singleton('config', function () {
             return new Config();
         });
         $this->setLaravel($container);

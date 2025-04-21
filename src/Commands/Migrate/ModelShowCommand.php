@@ -3,9 +3,9 @@ namespace X2nx\WebmanMigrate\Commands\Migrate;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Contracts\Foundation\Application as ApplicationContract;
 use Illuminate\Database\Console\ShowModelCommand;
-use Illuminate\Database\Eloquent\ModelInspector;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -17,7 +17,24 @@ class ModelShowCommand extends ShowModelCommand
     protected static string $defaultName = 'model:show';
 
     protected static string $defaultDescription = 'Show information about an Eloquent model';
-
+    /**
+     * The methods that can be called in a model to indicate a relation.
+     *
+     * @var array<int, string>
+     */
+    protected array $relationMethods = [
+        'hasMany',
+        'hasManyThrough',
+        'hasOneThrough',
+        'belongsToMany',
+        'hasOne',
+        'belongsTo',
+        'morphOne',
+        'morphTo',
+        'morphMany',
+        'morphToMany',
+        'morphedByMany',
+    ];
     public function __construct()
     {
         $container = new Container();
@@ -78,13 +95,176 @@ class ModelShowCommand extends ShowModelCommand
         ];
     }
 
+    /**
+     * Determine if the given attribute is unique.
+     *
+     * @param  string  $column
+     * @param  array  $indexes
+     * @return bool
+     */
+    protected function columnIsUnique($column, $indexes)
+    {
+        return (new BaseCollection($indexes))->contains(
+            fn ($index) => count($index['columns']) === 1 && $index['columns'][0] === $column && $index['unique']
+        );
+    }
+
+    /**
+     * Determine if the given attribute is hidden.
+     *
+     * @param  string  $attribute
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return bool
+     */
+    protected function attributeIsHidden($attribute, $model)
+    {
+        if (count($model->getHidden()) > 0) {
+            return in_array($attribute, $model->getHidden());
+        }
+
+        if (count($model->getVisible()) > 0) {
+            return ! in_array($attribute, $model->getVisible());
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the cast type for the given column.
+     *
+     * @param  string  $column
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return string|null
+     */
+    protected function getCastType($column, $model)
+    {
+        if ($model->hasGetMutator($column) || $model->hasSetMutator($column)) {
+            return 'accessor';
+        }
+
+        if ($model->hasAttributeMutator($column)) {
+            return 'attribute';
+        }
+
+        return $this->getCastsWithDates($model)->get($column) ?? null;
+    }
+
+    /**
+     * Get the first policy associated with this model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return string|null
+     */
     protected function getPolicy($model)
     {
-//        $policy = Gate::getPolicyFor($model::class);
+        return null;
+    }
 
-        $policy = false;
+    /**
+     * Get the model casts, including any date casts.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return \Illuminate\Support\Collection
+     */
+    protected function getCastsWithDates($model): BaseCollection
+    {
+        return (new BaseCollection($model->getDates()))
+            ->filter()
+            ->flip()
+            ->map(fn () => 'datetime')
+            ->merge($model->getCasts());
+    }
 
-        return $policy ? $policy::class : null;
+    /**
+     * Get the relations from the given model.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $model
+     * @return \Illuminate\Support\Collection
+     */
+    protected function getRelations(Model $model): BaseCollection
+    {
+        return (new BaseCollection(get_class_methods($model)))
+            ->map(fn ($method) => new \ReflectionMethod($model, $method))
+            ->reject(
+                fn (\ReflectionMethod $method) => $method->isStatic()
+                    || $method->isAbstract()
+                    || $method->getDeclaringClass()->getName() === Model::class
+                    || $method->getNumberOfParameters() > 0
+            )
+            ->filter(function (\ReflectionMethod $method) {
+                if ($method->getReturnType() instanceof \ReflectionNamedType
+                    && is_subclass_of($method->getReturnType()->getName(), Relation::class)) {
+                    return true;
+                }
+
+                $file = new \SplFileObject($method->getFileName());
+                $file->seek($method->getStartLine() - 1);
+                $code = '';
+                while ($file->key() < $method->getEndLine()) {
+                    $code .= trim($file->current());
+                    $file->next();
+                }
+
+                return (new BaseCollection($this->relationMethods))
+                    ->contains(fn ($relationMethod) => str_contains($code, '$this->'.$relationMethod.'('));
+            })
+            ->map(function (\ReflectionMethod $method) use ($model) {
+                $relation = $method->invoke($model);
+
+                if (! $relation instanceof Relation) {
+                    return null;
+                }
+
+                return [
+                    'name' => $method->getName(),
+                    'type' => Str::afterLast(get_class($relation), '\\'),
+                    'related' => get_class($relation->getRelated()),
+                ];
+            })
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * Get the virtual (non-column) attributes for the given model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  array  $columns
+     * @return \Illuminate\Support\Collection
+     */
+    protected function getVirtualAttributes($model, $columns)
+    {
+        $class = new \ReflectionClass($model);
+
+        return (new BaseCollection($class->getMethods()))
+            ->reject(
+                fn (\ReflectionMethod $method) => $method->isStatic()
+                    || $method->isAbstract()
+                    || $method->getDeclaringClass()->getName() === Model::class
+            )
+            ->mapWithKeys(function (\ReflectionMethod $method) use ($model) {
+                if (preg_match('/^get(.+)Attribute$/', $method->getName(), $matches) === 1) {
+                    return [Str::snake($matches[1]) => 'accessor'];
+                } elseif ($model->hasAttributeMutator($method->getName())) {
+                    return [Str::snake($method->getName()) => 'attribute'];
+                } else {
+                    return [];
+                }
+            })
+            ->reject(fn ($cast, $name) => (new BaseCollection($columns))->contains('name', $name))
+            ->map(fn ($cast, $name) => [
+                'name' => $name,
+                'type' => null,
+                'increments' => false,
+                'nullable' => null,
+                'default' => null,
+                'unique' => null,
+                'fillable' => $model->isFillable($name),
+                'hidden' => $this->attributeIsHidden($name, $model),
+                'appended' => $model->hasAppended($name),
+                'cast' => $cast,
+            ])
+            ->values();
     }
 
     /**
@@ -135,7 +315,8 @@ class ModelShowCommand extends ShowModelCommand
 
     protected function getObservers($model)
     {
-        $listeners = $this->app->make('events')->getRawListeners();
+
+        $listeners = $model->dispatchesEvents();
 
         // Get the Eloquent observers for this model...
         $listeners = array_filter($listeners, function ($v, $key) use ($model) {
