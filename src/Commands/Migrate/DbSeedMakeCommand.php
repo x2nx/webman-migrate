@@ -53,4 +53,14 @@ class DbSeedMakeCommand extends SeederMakeCommand
     {
         // 空实现，绕过 ConfiguresPrompts 的功能
     }
+
+    /**
+     * Get the root namespace for the class.
+     *
+     * @return string
+     */
+    protected function rootNamespace()
+    {
+        return 'database\seeders\\';
+    }
 }

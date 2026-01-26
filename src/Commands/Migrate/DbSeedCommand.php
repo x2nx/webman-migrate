@@ -50,4 +50,27 @@ class DbSeedCommand extends SeedCommand
     {
         // 空实现，绕过 ConfiguresPrompts 的功能
     }
+
+    /**
+     * Get a seeder instance from the container.
+     *
+     * @return \Illuminate\Database\Seeder
+     */
+    protected function getSeeder()
+    {
+        $class = $this->input->getArgument('class') ?? $this->input->getOption('class');
+
+        if (! str_contains($class, '\\')) {
+            $class = 'database\\seeders\\'.$class;
+        }
+
+        if ($class === 'database\\seeders\\DatabaseSeeder' &&
+            ! class_exists($class)) {
+            $class = 'DatabaseSeeder';
+        }
+
+        return $this->laravel->make($class)
+            ->setContainer($this->laravel)
+            ->setCommand($this);
+    }
 }
