@@ -3,21 +3,24 @@
 namespace X2nx\WebmanMigrate;
 
 use PDO;
+use Webman\Config;
 
 class Db extends \support\Db
 {
     protected function setupDefaultConfiguration(): void
     {
         $this->container['config']['database.fetch'] = PDO::FETCH_OBJ;
-        $this->container['config']['database.default'] = config('database.default');
+        $this->container['config']['database.default'] = Config::get('database.default');
     }
 
     public function init(): \Illuminate\Database\DatabaseManager
     {
-        $this->addConnection(
-            config(sprintf('database.connections.%s', config('database.default'))),
-            config('database.default')
-        );
+        $connections = Config::get('database.connections', []);
+
+        foreach ($connections as $name => $config) {
+            $this->addConnection($config, $name);
+        }
+
         $this->setAsGlobal(); // 使 Capsule 全局可用
         $this->bootEloquent(); // 启动 Eloquent ORM
 
